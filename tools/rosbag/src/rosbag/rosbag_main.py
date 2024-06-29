@@ -39,6 +39,7 @@ import signal
 import subprocess
 import sys
 import time
+
 try:
     from UserDict import UserDict  # Python 2.x
 except ImportError:
@@ -47,8 +48,17 @@ except ImportError:
 import roslib.message
 import roslib.packages
 
-from .bag import Bag, Compression, ROSBagException, ROSBagFormatException, ROSBagUnindexedException, ROSBagEncryptNotSupportedException, ROSBagEncryptException
-from .migration import MessageMigrator, fixbag2, checkbag
+from .bag import (
+    Bag,
+    Compression,
+    ROSBagEncryptException,
+    ROSBagEncryptNotSupportedException,
+    ROSBagException,
+    ROSBagFormatException,
+    ROSBagUnindexedException,
+)
+from .migration import MessageMigrator, checkbag, fixbag2
+
 
 def print_trans(old, new, indent):
     from_txt = '%s [%s]' % (old._type, old._md5sum)
@@ -103,6 +113,8 @@ def record_cmd(argv):
     parser.add_option("--tcpnodelay",          dest="tcpnodelay",                   action="store_true",          help="Use the TCP_NODELAY transport hint when subscribing to topics.")
     parser.add_option("--udp",                 dest="udp",                          action="store_true",          help="Use the UDP transport hint when subscribing to topics.")
     parser.add_option("--repeat-latched",      dest="repeat_latched",               action="store_true",          help="Repeat latched msgs at the start of each new bag file.")
+    parser.add_option("--trigger",             dest="trigger",                      action="store_true",          help="Publish a message to trigger a bag snapshot.")
+    parser.add_option("--snapshot",            dest="snapshot",                     action="store_true",          help="Split the bag file when a message is received on the trigger topic.")
 
     (options, args) = parser.parse_args(argv)
 
@@ -142,6 +154,8 @@ def record_cmd(argv):
     if options.tcpnodelay:  cmd.extend(["--tcpnodelay"])
     if options.udp:         cmd.extend(["--udp"])
     if options.repeat_latched:  cmd.extend(["--repeat-latched"])
+    if options.trigger:     cmd.extend(["--trigger"])
+    if options.snapshot:    cmd.extend(["--snapshot"])
 
     cmd.extend(args)
 
@@ -984,7 +998,9 @@ class ProgressMeter(object):
         """Estimate the width of the terminal"""
         width = 0
         try:
-            import struct, fcntl, termios
+            import fcntl
+            import struct
+            import termios
             s     = struct.pack('HHHH', 0, 0, 0, 0)
             x     = fcntl.ioctl(1, termios.TIOCGWINSZ, s)
             width = struct.unpack('HHHH', x)[1]

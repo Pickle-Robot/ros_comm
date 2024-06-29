@@ -71,7 +71,9 @@ rosbag::RecorderOptions parseOptions(int argc, char** argv) {
       ("node", po::value<std::string>(), "Record all topics subscribed to by a specific node.")
       ("tcpnodelay", "Use the TCP_NODELAY transport hint when subscribing to topics.")
       ("udp", "Use the UDP transport hint when subscribing to topics.")
-      ("repeat-latched", "Repeat latched msgs at the start of each new bag file.");
+      ("repeat-latched", "Repeat latched msgs at the start of each new bag file.")
+      ("trigger", po::value<int>()->implicit_value(0), "Publish a message to trigger a bag snapshot.")
+      ("snapshot", po::value<int>()->implicit_value(0), "Split the bag file when a message is received on the trigger topic.");
 
   
     po::positional_options_description p;
@@ -268,6 +270,15 @@ rosbag::RecorderOptions parseOptions(int argc, char** argv) {
         opts.topics.push_back(*i);
     }
 
+    if (vm.count("trigger"))
+    {
+      opts.trigger = true;
+    }
+
+    if (vm.count("snapshot"))
+    {
+      opts.snapshot = true;
+    }
 
     // check that argument combinations make sense
     if(opts.exclude_regex.size() > 0 &&

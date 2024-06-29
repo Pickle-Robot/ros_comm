@@ -123,7 +123,8 @@ Recorder::Recorder(RecorderOptions const& options) :
     exit_code_(0),
     queue_size_(0),
     split_count_(0),
-    writing_enabled_(true)
+    writing_enabled_(true),
+    paused_(false),
 {
 }
 
@@ -205,7 +206,7 @@ int Recorder::run() {
         });
 
         // Subscribe to the snapshot trigger
-        trigger_sub = nh.subscribe<std_msgs::Empty>("snapshot_trigger", 100, boost::bind(&Recorder::snapshotTrigger, this, boost::placeholders::_1));
+        trigger_sub = nh.subscribe<std_msgs::Bool>("snapshot_trigger", 100, boost::bind(&Recorder::snapshotTrigger, this, boost::placeholders::_1));
     }
     else
     {
@@ -332,6 +333,13 @@ void Recorder::doQueue(const ros::MessageEvent<topic_tools::ShapeShifter const>&
     if (options_.verbose)
         cout << "Received message on topic " << subscriber->getTopic() << endl;
 
+    if (paused_)
+    {
+        if (options_.verbose)
+            cout << "Ignoring message. Bag is paused." << endl;
+        return;
+    }
+
     OutgoingMessage out(topic, msg_event.getMessage(), msg_event.getConnectionHeaderPtr(), rectime);
     
     {
@@ -418,11 +426,18 @@ void Recorder::updateFilenames() {
 }
 
 //! Callback to be invoked to actually do the recording
-void Recorder::snapshotTrigger(std_msgs::Empty::ConstPtr trigger) {
-    (void)trigger;
-    updateFilenames();
+void Recorder::snapshotTrigger(std_msgs::Bool::ConstPtr trigger) {
+    paused_ = trigger->data;
     
-    ROS_INFO("Triggered snapshot recording with name '%s'.", target_filename_.c_str());
+    if (paused_)
+    {
+        ROS_INFO("Pausing recording");
+    }
+    else
+    {
+        updateFilenames();
+        ROS_INFO("Triggered snapshot recording with name '%s'.", target_filename_.c_str());
+    }
     
     {
         boost::mutex::scoped_lock lock(queue_mutex_);

@@ -54,7 +54,7 @@
 #include <ros/ros.h>
 #include <ros/time.h>
 
-#include <std_msgs/Empty.h>
+#include <std_msgs/Bool.h>
 #include <std_msgs/String.h>
 #include <topic_tools/shape_shifter.h>
 
@@ -142,7 +142,7 @@ private:
     bool scheduledCheckDisk();
     bool checkDisk();
 
-    void snapshotTrigger(std_msgs::Empty::ConstPtr trigger);
+    void snapshotTrigger(std_msgs::Bool::ConstPtr trigger);
     //    void doQueue(topic_tools::ShapeShifter::ConstPtr msg, std::string const& topic, boost::shared_ptr<ros::Subscriber> subscriber, boost::shared_ptr<int> count);
     void doQueue(const ros::MessageEvent<topic_tools::ShapeShifter const>& msg_event, std::string const& topic, boost::shared_ptr<ros::Subscriber> subscriber, boost::shared_ptr<int> count);
     void doRecord();
@@ -193,6 +193,8 @@ private:
     ros::WallTime                 warn_next_;
 
     ros::Publisher                pub_begin_write;
+
+    bool                          paused_;
 };
 
 } // namespace rosbag
